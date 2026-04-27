@@ -30,7 +30,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./docs
+          path: .
+          # Excludes folders not needed by the static site so the artifact
+          # stays small. The site itself lives at the repo root.
 
       - name: Deploy
         id: deployment

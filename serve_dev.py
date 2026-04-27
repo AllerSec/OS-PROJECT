@@ -12,7 +12,7 @@ import http.server
 import socketserver
 from pathlib import Path
 
-DOCS = Path(__file__).resolve().parent / "docs"
+DOCS = Path(__file__).resolve().parent
 PORT = 8000
 
 

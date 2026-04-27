@@ -61,7 +61,7 @@ install.
 > The local dev server adds `Cross-Origin-Opener-Policy: same-origin` and
 > `Cross-Origin-Embedder-Policy: require-corp`. On GitHub Pages those
 > headers are added by a tiny client-side service worker
-> (`docs/coi-serviceworker.js`) so the site works the same way without
+> (`coi-serviceworker.js`) so the site works the same way without
 > any server config.
 
 ---
@@ -72,7 +72,7 @@ install.
 2. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 3. Push to `main` (or trigger the workflow manually). Done.
 
-The workflow uploads the `docs/` folder as the artifact and deploys it.
+The workflow uploads the repo root as the artifact and deploys it.
 Your site will be live at
 `https://<user>.github.io/<repo>/` within a couple of minutes.
 
@@ -101,7 +101,7 @@ Your site will be live at
 
 - **Frontend**: HTML + Tailwind-style custom CSS + Vanilla JS + Chart.js
   (CDN). The CSS is the only place where the look lives — open
-  `docs/styles.css` to see the liquid-glass design system.
+  `styles.css` to see the liquid-glass design system.
 - **Concurrency**: real Web Workers and Atomics for race-condition / mutex
   / spinlock demos; cooperative async for producer-consumer,
   readers-writers, deadlock, and priority inversion.
@@ -111,29 +111,28 @@ Your site will be live at
 ## Project layout
 
 ```
-PROJECT/
-├── docs/                         ← GitHub Pages root
-│   ├── index.html                six demo cards in one page
-│   ├── styles.css                liquid glass + dark theme
-│   ├── app.js                    panel controllers (ES modules)
-│   ├── coi-serviceworker.js      enables SharedArrayBuffer on Pages
-│   ├── .nojekyll                 disable Jekyll processing
-│   ├── specs/                    design spec
-│   └── demos/
-│       ├── worker_counter.js     Web Worker for demos 1+2
-│       ├── race_condition.js
-│       ├── mutex_vs_spinlock.js
-│       ├── producer_consumer.js
-│       ├── readers_writers.js
-│       ├── deadlock.js
-│       └── priority_inversion.js
+PROJECT/                          ← GitHub Pages root (whole repo)
+├── index.html                    six demo cards in one page
+├── styles.css                    liquid glass + dark theme
+├── app.js                        panel controllers (ES modules)
+├── coi-serviceworker.js          enables SharedArrayBuffer on Pages
+├── .nojekyll                     disable Jekyll processing
+├── demos/
+│   ├── worker_counter.js         Web Worker for demos 1+2
+│   ├── race_condition.js
+│   ├── mutex_vs_spinlock.js
+│   ├── producer_consumer.js
+│   ├── readers_writers.js
+│   ├── deadlock.js
+│   └── priority_inversion.js
+├── specs/                        design spec
 ├── presentation/                 short PowerPoint
 │   ├── ObsidianLab.pptx
 │   ├── screenshots/              one per demo + mobile + hero
 │   ├── capture.py                generates screenshots from a live page
 │   └── build_pptx.py             builds the deck
 ├── legacy_python/                bonus: same demos as a FastAPI server
-│   └── app/                      (run with uvicorn — see legacy_python/README is in main)
+│   └── app/                      (run with uvicorn)
 ├── .github/workflows/pages.yml   auto-deploy on push to main
 ├── serve_dev.py                  local dev server with COOP/COEP
 └── README.md                     this file
@@ -151,7 +150,7 @@ GitHub Pages but is included to show the same algorithms in two languages.
 ```bash
 pip install -r legacy_python/requirements.txt
 uvicorn legacy_python.app.main:app --reload
-# the static UI is in docs/, but you would need to point it at the WS URL
+# the static UI is in the repo root; you would need to point it at the WS URL
 ```
 
 ---
