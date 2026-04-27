@@ -11,6 +11,20 @@
   <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%2305060A' stroke='%2339FFB0' stroke-width='2'/><circle cx='16' cy='16' r='4' fill='%2339FFB0'/></svg>" />
 </head>
 <body>
+
+<!-- ============================================================ -->
+<!-- SIDE NAV (desktop)                                            -->
+<!-- ============================================================ -->
+<nav class="sidenav" aria-label="Section navigation">
+  <a href="#cover"        data-nav="cover"><span>Cover</span></a>
+  <a href="#motivation"   data-nav="motivation"><span>Motivation</span></a>
+  <a href="#concepts"     data-nav="concepts"><span>Concepts</span></a>
+  <a href="#architecture" data-nav="architecture"><span>Architecture</span></a>
+  <a href="#demos"        data-nav="demos"><span>Live demos</span></a>
+  <a href="#conclusions"  data-nav="conclusions"><span>Conclusions</span></a>
+  <a href="#repo"         data-nav="repo"><span>Repository</span></a>
+</nav>
+
 <div class="shell">
 
   <!-- ============================================================ -->
@@ -31,25 +45,178 @@
   </header>
 
   <!-- ============================================================ -->
-  <!-- HERO                                                          -->
+  <!-- 1 · COVER                                                     -->
   <!-- ============================================================ -->
-  <section class="hero">
-    <h1>Synchronization tools for Linux RTOS, demonstrated live.</h1>
-    <p>
-      Six interactive demos that show how Linux solves the classic problems of
-      shared resources in real-time systems. Click <strong>Run</strong> on any
-      card and watch the threads race, block, deadlock and recover. Each demo
-      includes a short explanation in plain English.
-    </p>
-    <div class="tags">
-      <span class="tag">         <span class="swatch"></span> mutex          </span>
-      <span class="tag amber">   <span class="swatch"></span> spinlock       </span>
-      <span class="tag cyan">    <span class="swatch"></span> semaphore      </span>
-      <span class="tag violet">  <span class="swatch"></span> rw-lock        </span>
-      <span class="tag coral">   <span class="swatch"></span> deadlock       </span>
-      <span class="tag amber">   <span class="swatch"></span> priority inv.  </span>
+  <section class="section" id="cover">
+    <div class="hero">
+      <h1>Synchronization tools for Linux RTOS, demonstrated live.</h1>
+      <p>
+        An interactive coursework project for <strong>Real-Time Operating Systems</strong>.
+        Six runnable demos that show how Linux solves the classic problems of
+        shared resources in real-time systems. Click <strong>Run</strong> on any
+        card and watch the threads race, block, deadlock and recover. Every
+        explanation is in plain English.
+      </p>
+      <div class="tags">
+        <span class="tag">         <span class="swatch"></span> mutex          </span>
+        <span class="tag amber">   <span class="swatch"></span> spinlock       </span>
+        <span class="tag cyan">    <span class="swatch"></span> semaphore      </span>
+        <span class="tag violet">  <span class="swatch"></span> rw-lock        </span>
+        <span class="tag coral">   <span class="swatch"></span> deadlock       </span>
+        <span class="tag amber">   <span class="swatch"></span> priority inv.  </span>
+      </div>
+    </div>
+
+    <div class="course-banner">
+      <div class="left">
+        <span><b>SUBJECT</b> &nbsp; Real-Time Operating Systems</span>
+        <span><b>YEAR</b> &nbsp; 2025–2026</span>
+        <span><b>TOPIC</b> &nbsp; Linux Synchronization Tools</span>
+      </div>
+      <div class="right">deployed via GitHub Pages</div>
     </div>
   </section>
+
+  <!-- ============================================================ -->
+  <!-- 2 · MOTIVATION                                                -->
+  <!-- ============================================================ -->
+  <section class="section" id="motivation">
+    <span class="section-kicker">01 · Motivation</span>
+    <h2 class="section-title">Why synchronization in RTOS?</h2>
+    <p class="section-lead">
+      In a real-time system, several tasks share buffers, devices, counters
+      and queues. When two of them touch the same data without coordination,
+      the result is silently wrong, the system deadlocks, or a high-priority
+      task misses its deadline. Linux gives us the tools to prevent this —
+      but each one comes with trade-offs.
+    </p>
+
+    <div class="split two">
+      <div class="point coral">
+        <h3><span class="dot"></span> The problem</h3>
+        <p>
+          Concurrent threads can interleave at any byte boundary. A simple
+          <code>counter += 1</code> is not atomic — it is read, modify, write,
+          and another thread can sneak in between the read and the write.
+          The bug does not crash; it just produces wrong numbers, and only
+          sometimes.
+        </p>
+      </div>
+      <div class="point">
+        <h3><span class="dot"></span> The toolkit</h3>
+        <p>
+          Linux exposes <strong>mutexes</strong>, <strong>spinlocks</strong>,
+          <strong>semaphores</strong>, <strong>read-write locks</strong>,
+          <strong>condition variables</strong> and <strong>priority-inheritance
+          mutexes</strong>. Picking the right one for the right context is the
+          difference between a system that meets its deadlines and one that
+          silently loses data.
+        </p>
+      </div>
+    </div>
+
+    <div class="callout">
+      Goal of this project: build an interactive web app that lets you
+      <em>see</em> each of these tools in action — including the bugs they
+      prevent — so the difference between them is no longer abstract.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 3 · KEY CONCEPTS                                              -->
+  <!-- ============================================================ -->
+  <section class="section" id="concepts">
+    <span class="section-kicker">02 · Concepts</span>
+    <h2 class="section-title">Six concepts, one page</h2>
+    <p class="section-lead">
+      Each demo below isolates one concept and lets you trigger it on
+      demand. The numbers you see are real measurements, not fake values.
+    </p>
+
+    <ol class="keylist">
+      <li><b>Race condition</b><span>Two threads on one variable. Without a mutex, updates are lost.</span></li>
+      <li><b>Mutex</b><span>One thread at a time. Blocked threads sleep until the lock is free.</span></li>
+      <li><b>Spinlock</b><span>One thread at a time, but blocked threads burn CPU until the lock is free.</span></li>
+      <li><b>Semaphore</b><span>Counts a resource (free slots, ready items). Blocks at zero.</span></li>
+      <li><b>Read-Write lock</b><span>Many readers in parallel; one exclusive writer. Writer-priority avoids starvation.</span></li>
+      <li><b>Deadlock</b><span>Circular wait between threads. Fixed with a global lock-order rule.</span></li>
+      <li><b>Priority inversion</b><span>A high-priority task indirectly blocked by a medium one — the boss problem.</span></li>
+      <li><b>Priority inheritance</b><span>The lock holder temporarily inherits the priority of the highest waiter.</span></li>
+      <li><b>Atomics &amp; futex</b><span>Lock-free primitives that mutexes are built on top of.</span></li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 4 · ARCHITECTURE                                              -->
+  <!-- ============================================================ -->
+  <section class="section" id="architecture">
+    <span class="section-kicker">03 · Architecture</span>
+    <h2 class="section-title">How the web app works</h2>
+    <p class="section-lead">
+      The site is fully static — it runs entirely in your browser, with no
+      backend. Demos 1 and 2 use real <strong>Web Workers</strong> sharing a
+      <code>SharedArrayBuffer</code>; the synchronization primitives are
+      <code>Atomics.wait</code> / <code>Atomics.notify</code>, the JS
+      equivalent of Linux <code>futex(2)</code>. Demos 3 to 6 run cooperatively
+      in the main thread because their behaviour is best understood through
+      animation, not through CPU contention.
+    </p>
+
+    <div class="arch">
+      <div class="arch-box">
+        <div class="label">Browser · UI</div>
+        <h4>Vanilla JS + Chart.js</h4>
+        <ul>
+          <li>Liquid-glass dark CSS</li>
+          <li>One ES module per demo</li>
+          <li>Responsive web + mobile</li>
+        </ul>
+      </div>
+      <div class="arch-arrow">
+        Web Worker · MessageChannel
+        <span class="line"></span>
+        SharedArrayBuffer
+      </div>
+      <div class="arch-box">
+        <div class="label">Workers · Sync</div>
+        <h4>Atomics &amp; futex</h4>
+        <ul>
+          <li><code>compareExchange</code> for spinlocks</li>
+          <li><code>wait / notify</code> for mutexes</li>
+          <li>Real concurrent execution</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="split three" style="margin-top:18px">
+      <div class="point cyan">
+        <h3><span class="dot"></span> 100 % static</h3>
+        <p>No backend. Deploys to GitHub Pages with one push.</p>
+      </div>
+      <div class="point violet">
+        <h3><span class="dot"></span> COOP / COEP</h3>
+        <p>Required headers for <code>SharedArrayBuffer</code> are added by a
+        client-side service worker — works on any host.</p>
+      </div>
+      <div class="point amber">
+        <h3><span class="dot"></span> Bonus: Python</h3>
+        <p>A <code>legacy_python/</code> folder ships the same demos as a
+        FastAPI/uvicorn server using real OS threads.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 5 · LIVE DEMOS                                                -->
+  <!-- ============================================================ -->
+  <section class="section" id="demos">
+    <span class="section-kicker">04 · Live demos</span>
+    <h2 class="section-title">Click any Run button</h2>
+    <p class="section-lead">
+      Each card includes a "What is this?" panel with a plain-English
+      explanation, then real numbers from your own machine. Demos run in
+      sequence, so it is fine to start them one after another.
+    </p>
 
   <!-- ============================================================ -->
   <!-- DEMO GRID                                                     -->
@@ -340,10 +507,85 @@
     </article>
 
   </main>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 6 · CONCLUSIONS                                               -->
+  <!-- ============================================================ -->
+  <section class="section" id="conclusions">
+    <span class="section-kicker">05 · Conclusions</span>
+    <h2 class="section-title">What we learned</h2>
+    <p class="section-lead">
+      Building each demo from scratch made the trade-offs concrete. Here is
+      what stands out.
+    </p>
+
+    <div class="conclusion-grid">
+      <div class="point">
+        <h3><span class="dot"></span> Mutex vs spinlock is contextual</h3>
+        <p>
+          Spinlocks win for ultra-short critical sections; mutexes win when
+          the section is longer than a context switch. Linux uses both —
+          spinlocks inside interrupt handlers (where sleeping is forbidden),
+          mutexes in user space.
+        </p>
+      </div>
+      <div class="point cyan">
+        <h3><span class="dot"></span> Deadlocks are structural</h3>
+        <p>
+          A deadlock is rarely a "missing lock"; it is a circular dependency
+          between locks. The fix is a global ordering rule applied
+          everywhere, not a clever runtime check at one site.
+        </p>
+      </div>
+      <div class="point amber">
+        <h3><span class="dot"></span> Priority inheritance is essential</h3>
+        <p>
+          Without it, an unrelated medium-priority task can make a
+          high-priority task miss its deadline. The Mars Pathfinder bug was
+          exactly this. Linux fixes it with
+          <code>PTHREAD_PRIO_INHERIT</code>.
+        </p>
+      </div>
+      <div class="point violet">
+        <h3><span class="dot"></span> The browser is a real OS</h3>
+        <p>
+          Web Workers + <code>SharedArrayBuffer</code> + <code>Atomics</code>
+          let us run real concurrent code in a static page. The same
+          algorithm runs identically on Linux pthreads and on the browser —
+          the synchronisation theory is portable.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- 7 · REPOSITORY                                                -->
+  <!-- ============================================================ -->
+  <section class="section" id="repo">
+    <span class="section-kicker">06 · Repository</span>
+    <h2 class="section-title">Source code &amp; deployment</h2>
+    <p class="section-lead">
+      The whole project — frontend, the bonus Python backend, this
+      presentation, screenshots and the design spec — is in a single
+      repository. Every push to <code>main</code> redeploys the live site
+      automatically.
+    </p>
+
+    <div class="repo-card">
+      <div class="links">
+        <span class="meta">Repository</span>
+        <a href="https://github.com/AllerSec/OS-PROJECT" target="_blank" rel="noopener">github.com/AllerSec/OS-PROJECT</a>
+        <span class="meta" style="margin-top:8px">Live demo</span>
+        <a href="https://allersec.github.io/OS-PROJECT/" target="_blank" rel="noopener">allersec.github.io/OS-PROJECT</a>
+      </div>
+      <div class="meta">RTOS · 2025–2026</div>
+    </div>
+  </section>
 
   <footer class="footer">
     <div>Obsidian Lab · Real-Time Operating Systems · 2025–2026</div>
-    <div style="margin-top:6px">Press <code>R</code> to refresh status · Built with FastAPI + Vanilla JS</div>
+    <div style="margin-top:6px">Press <code>R</code> to refresh status · 100% static · GitHub Pages</div>
   </footer>
 </div>
 

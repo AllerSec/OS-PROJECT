@@ -365,3 +365,21 @@ document.querySelectorAll('.demo').forEach(card => {
   const binder = BINDERS[name];
   if (binder) binder(card);
 });
+
+// ---------- Side nav: highlight current section ----------
+const sections = ['cover','motivation','concepts','architecture','demos','conclusions','repo'];
+const observer = new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      document.querySelectorAll('.sidenav a').forEach(a => {
+        a.classList.toggle('active', a.dataset.nav === id);
+      });
+    }
+  }
+}, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
+
+for (const id of sections) {
+  const el = document.getElementById(id);
+  if (el) observer.observe(el);
+}
