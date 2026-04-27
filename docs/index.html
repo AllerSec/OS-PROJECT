@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Obsidian Lab — Linux Synchronization Tools for RTOS</title>
+  <meta name="description" content="Interactive demos of mutex, spinlock, semaphores, RW-locks, deadlock and priority inversion in Linux RTOS." />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="./coi-serviceworker.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%2305060A' stroke='%2339FFB0' stroke-width='2'/><circle cx='16' cy='16' r='4' fill='%2339FFB0'/></svg>" />
+</head>
+<body>
+<div class="shell">
+
+  <!-- ============================================================ -->
+  <!-- TOP BAR                                                       -->
+  <!-- ============================================================ -->
+  <header class="topbar" role="banner">
+    <div class="topbar-brand">
+      <span class="dot" aria-hidden="true"></span>
+      <div>
+        <div class="name">Obsidian Lab</div>
+        <span class="sub">Linux Sync Tools · RTOS</span>
+      </div>
+    </div>
+    <div class="topbar-status" id="status">
+      <span class="ping" aria-hidden="true"></span>
+      <span id="status-text">connecting…</span>
+    </div>
+  </header>
+
+  <!-- ============================================================ -->
+  <!-- HERO                                                          -->
+  <!-- ============================================================ -->
+  <section class="hero">
+    <h1>Synchronization tools for Linux RTOS, demonstrated live.</h1>
+    <p>
+      Six interactive demos that show how Linux solves the classic problems of
+      shared resources in real-time systems. Click <strong>Run</strong> on any
+      card and watch the threads race, block, deadlock and recover. Each demo
+      includes a short explanation in plain English.
+    </p>
+    <div class="tags">
+      <span class="tag">         <span class="swatch"></span> mutex          </span>
+      <span class="tag amber">   <span class="swatch"></span> spinlock       </span>
+      <span class="tag cyan">    <span class="swatch"></span> semaphore      </span>
+      <span class="tag violet">  <span class="swatch"></span> rw-lock        </span>
+      <span class="tag coral">   <span class="swatch"></span> deadlock       </span>
+      <span class="tag amber">   <span class="swatch"></span> priority inv.  </span>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- DEMO GRID                                                     -->
+  <!-- ============================================================ -->
+  <main class="grid" id="grid">
+
+    <!-- ====== Demo 1 — Race Condition ====== -->
+    <article class="demo" data-demo="race_condition">
+      <div class="demo-header">
+        <h2 class="demo-title">
+          <span class="num">01</span>
+          Race condition
+        </h2>
+        <div class="demo-actions">
+          <button class="btn btn-primary" data-action="start">Run</button>
+        </div>
+      </div>
+      <p class="demo-subtitle">Two threads, one counter. With and without a mutex.</p>
+
+      <details class="info">
+        <summary>What is this?</summary>
+        <div class="info-body">
+          <p>
+            A <strong>race condition</strong> happens when two threads change the
+            same data at the same time and one update gets lost. It does not
+            crash, but the result is wrong.
+          </p>
+          <p>
+            Each thread runs <code>counter += 1</code> many times. Without a lock,
+            both threads can read the same old value, add one, and write it back
+            — the final number is too small.
+          </p>
+          <p>
+            A <strong>mutex</strong> (<em>mutual exclusion</em>) makes only one
+            thread at a time enter the section that touches the shared data.
+            With it, the result is exact.
+          </p>
+        </div>
+      </details>
+
+      <div class="stats">
+        <div class="stat info">      <div class="label">Expected</div>      <div class="value" data-field="expected">—</div></div>
+        <div class="stat bad"  id="rc-unsafe-stat"><div class="label">No mutex</div><div class="value" data-field="unsafe">—</div></div>
+        <div class="stat good" id="rc-safe-stat">  <div class="label">With mutex</div><div class="value" data-field="safe">—</div></div>
+        <div class="stat warn">      <div class="label">Lost updates</div>  <div class="value" data-field="lost">—</div></div>
+      </div>
+
+      <div class="phase" data-field="phase" hidden></div>
+
+      <div class="code"><span class="com"># the unsafe path — tiny window, real bug</span>
+<span class="kw">def</span> <span class="fn">increment</span>():
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(N):
+        v = counter        <span class="com"># read</span>
+        <span class="fn">time.sleep</span>(<span class="num">0</span>)        <span class="com"># scheduler may switch here</span>
+        counter = v + <span class="num">1</span>     <span class="com"># write — sometimes overwrites a peer's update</span>
+
+<span class="com"># the fix — wrap with a mutex</span>
+<span class="kw">with</span> lock:
+    counter += <span class="num">1</span></div>
+    </article>
+
+    <!-- ====== Demo 2 — Mutex vs Spinlock ====== -->
+    <article class="demo" data-demo="mutex_vs_spinlock">
+      <div class="demo-header">
+        <h2 class="demo-title">
+          <span class="num">02</span>
+          Mutex vs spinlock
+        </h2>
+        <div class="demo-actions">
+          <button class="btn btn-primary" data-action="start">Benchmark</button>
+        </div>
+      </div>
+      <p class="demo-subtitle">Same workload, two locking strategies.</p>
+
+      <details class="info">
+        <summary>What is this?</summary>
+        <div class="info-body">
+          <p>
+            A <strong>mutex</strong> makes blocked threads sleep until the lock is
+            free. A <strong>spinlock</strong> makes them <em>busy-wait</em> in a
+            tight loop, burning CPU until the lock is free.
+          </p>
+          <p>
+            Spinlocks are faster when the critical section is shorter than a
+            context switch (a few microseconds). Mutexes are better when the
+            section is longer, because sleeping releases the CPU.
+          </p>
+          <p>
+            We run the exact same job with each, and graph the time. The Linux
+            kernel uses both, depending on context — you cannot sleep inside an
+            interrupt handler, so spinlocks rule there.
+          </p>
+        </div>
+      </details>
+
+      <div class="chart-wrap">
+        <canvas id="chart-mvs"></canvas>
+      </div>
+
+      <div class="stats">
+        <div class="stat info"><div class="label">Mutex</div>   <div class="value" data-field="mutex">— ms</div></div>
+        <div class="stat info"><div class="label">Spinlock</div><div class="value" data-field="spinlock">— ms</div></div>
+      </div>
+    </article>
+
+    <!-- ====== Demo 3 — Producer / Consumer ====== -->
+    <article class="demo full" data-demo="producer_consumer">
+      <div class="demo-header">
+        <h2 class="demo-title">
+          <span class="num">03</span>
+          Producer / consumer
+        </h2>
+        <div class="demo-actions">
+          <button class="btn btn-primary" data-action="start">Run</button>
+        </div>
+      </div>
+      <p class="demo-subtitle">Bounded buffer with two semaphores plus a mutex.</p>
+
+      <details class="info">
+        <summary>What is this?</summary>
+        <div class="info-body">
+          <p>
+            A classic pipeline. The <strong>producer</strong> makes items, the
+            <strong>consumer</strong> uses them. Between them sits a buffer of
+            fixed size.
+          </p>
+          <p>
+            Two <strong>semaphores</strong> count free slots and ready items, and
+            a <strong>mutex</strong> protects the buffer itself. The producer
+            cannot overflow; the consumer cannot read empty slots.
+          </p>
+          <p>
+            This is how device drivers, network stacks, and audio pipelines move
+            data between threads in Linux.
+          </p>
+        </div>
+      </details>
+
+      <div class="buffer" id="pc-buffer" aria-label="Buffer slots"></div>
+
+      <div class="stats">
+        <div class="stat info"><div class="label">Buffer size</div> <div class="value" data-field="buffer_size">—</div></div>
+        <div class="stat good"><div class="label">Produced</div>    <div class="value" data-field="produced">0</div></div>
+        <div class="stat good"><div class="label">Consumed</div>    <div class="value" data-field="consumed">0</div></div>
+        <div class="stat warn"><div class="label">In flight</div>   <div class="value" data-field="inflight">0</div></div>
+      </div>
+    </article>
+
+    <!-- ====== Demo 4 — Readers / Writers ====== -->
+    <article class="demo" data-demo="readers_writers">
+      <div class="demo-header">
+        <h2 class="demo-title">
+          <span class="num">04</span>
+          Readers / writers
+        </h2>
+        <div class="demo-actions">
+          <button class="btn btn-primary" data-action="start">Run</button>
+        </div>
+      </div>
+      <p class="demo-subtitle">Many readers may share access; writers go alone.</p>
+
+      <details class="info">
+        <summary>What is this?</summary>
+        <div class="info-body">
+          <p>
+            A <strong>read-write lock</strong> lets many readers work in parallel
+            but gives a writer the resource alone. This is what
+            <code>pthread_rwlock_t</code> does on Linux.
+          </p>
+          <p>
+            We use <em>writer priority</em>: a waiting writer blocks new readers
+            so it cannot starve. Each lane below shows what one thread is doing
+            at this instant.
+          </p>
+        </div>
+      </details>
+
+      <div class="lanes" id="rw-lanes"></div>
+
+      <div class="stats">
+        <div class="stat good"><div class="label">Reads</div>  <div class="value" data-field="reads">0</div></div>
+        <div class="stat warn"><div class="label">Writes</div> <div class="value" data-field="writes">0</div></div>
+      </div>
+    </article>
+
+    <!-- ====== Demo 5 — Deadlock ====== -->
+    <article class="demo" data-demo="deadlock">
+      <div class="demo-header">
+        <h2 class="demo-title">
+          <span class="num">05</span>
+          Deadlock
+        </h2>
+        <div class="demo-actions">
+          <button class="btn btn-danger" data-action="break">Cause</button>
+          <button class="btn btn-primary" data-action="fix">Fix</button>
+        </div>
+      </div>
+      <p class="demo-subtitle">Two threads, two locks, opposite order.</p>
+
+      <details class="info">
+        <summary>What is this?</summary>
+        <div class="info-body">
+          <p>
+            A <strong>deadlock</strong> is a circular wait. Thread A holds lock 1
+            and wants lock 2. Thread B holds lock 2 and wants lock 1. Neither
+            ever continues.
+          </p>
+          <p>
+            The fix is a <strong>global lock order</strong>: every thread always
+            grabs lock 1 before lock 2. No cycle can form.
+          </p>
+          <p>
+            A real-time system that deadlocks misses its deadline. Real kernels
+            use lock hierarchies and runtime checks (<code>lockdep</code>) to
+            avoid this.
+          </p>
+        </div>
+      </details>
+
+      <div class="dl-grid">
+        <div class="dl-thread" id="dl-a"><div class="who">Thread A</div><div class="what">idle</div></div>
+        <div class="dl-arrows">⇄</div>
+        <div class="dl-thread" id="dl-b"><div class="who">Thread B</div><div class="what">idle</div></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat info"><div class="label">Result</div>      <div class="value" data-field="result">—</div></div>
+        <div class="stat info"><div class="label">Elapsed</div>     <div class="value" data-field="elapsed">— ms</div></div>
+      </div>
+    </article>
+
+    <!-- ====== Demo 6 — Priority Inversion ====== -->
+    <article class="demo full" data-demo="priority_inversion">
+      <div class="demo-header">
+        <h2 class="demo-title">
+          <span class="num">06</span>
+          Priority inversion
+        </h2>
+        <div class="demo-actions">
+          <button class="btn btn-primary" data-action="start">Run both</button>
+        </div>
+      </div>
+      <p class="demo-subtitle">A high-priority task blocked by a medium one.</p>
+
+      <details class="info">
+        <summary>What is this?</summary>
+        <div class="info-body">
+          <p>
+            Three threads — <strong>Low</strong>, <strong>Medium</strong>,
+            <strong>High</strong>. Low holds a mutex. High wakes up and waits for
+            it. Medium is CPU-bound and pre-empts Low. Now High waits for Low,
+            which waits for Medium. This is <strong>priority inversion</strong>.
+          </p>
+          <p>
+            <strong>Priority inheritance</strong> fixes it: when High blocks on
+            the mutex, Low temporarily inherits High's priority. Medium can no
+            longer pre-empt Low; the mutex is released quickly. Linux supports
+            this with <code>PTHREAD_PRIO_INHERIT</code>.
+          </p>
+        </div>
+      </details>
+
+      <div class="banner">
+        Real OS-level priority inheritance needs Linux. We model the effect with
+        a cooperative scheduler so the visual difference is clear on any
+        platform.
+      </div>
+
+      <div class="timeline-wrap">
+        <div id="pi-timeline-without">
+          <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Without priority inheritance</div>
+          <div class="tl-row"><div class="tl-label">High</div><div class="tl-track" data-track="High"></div></div>
+          <div class="tl-row"><div class="tl-label">Medium</div><div class="tl-track" data-track="Medium"></div></div>
+          <div class="tl-row"><div class="tl-label">Low</div><div class="tl-track" data-track="Low"></div></div>
+        </div>
+        <div id="pi-timeline-with" style="margin-top:18px">
+          <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">With priority inheritance</div>
+          <div class="tl-row"><div class="tl-label">High</div><div class="tl-track" data-track="High"></div></div>
+          <div class="tl-row"><div class="tl-label">Medium</div><div class="tl-track" data-track="Medium"></div></div>
+          <div class="tl-row"><div class="tl-label">Low</div><div class="tl-track" data-track="Low"></div></div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat bad"> <div class="label">Latency · no PI</div>  <div class="value" data-field="lat_without">— ms</div></div>
+        <div class="stat good"><div class="label">Latency · with PI</div><div class="value" data-field="lat_with">— ms</div></div>
+      </div>
+    </article>
+
+  </main>
+
+  <footer class="footer">
+    <div>Obsidian Lab · Real-Time Operating Systems · 2025–2026</div>
+    <div style="margin-top:6px">Press <code>R</code> to refresh status · Built with FastAPI + Vanilla JS</div>
+  </footer>
+</div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
