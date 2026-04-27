@@ -257,16 +257,43 @@
 
       <div class="phase" data-field="phase" hidden></div>
 
-      <div class="code"><span class="com"># the unsafe path — tiny window, real bug</span>
-<span class="kw">def</span> <span class="fn">increment</span>():
-    <span class="kw">for</span> _ <span class="kw">in</span> <span class="fn">range</span>(N):
-        v = counter        <span class="com"># read</span>
-        <span class="fn">time.sleep</span>(<span class="num">0</span>)        <span class="com"># scheduler may switch here</span>
-        counter = v + <span class="num">1</span>     <span class="com"># write — sometimes overwrites a peer's update</span>
+      <details class="code-panel">
+        <summary>
+          <span class="label">Show code</span>
+          <span class="code-tag real">real · web workers</span>
+        </summary>
+        <div class="code"><span class="com">// Two real Web Workers run this code in parallel.</span>
+<span class="com">// Both share one Int32Array via SharedArrayBuffer.</span>
 
-<span class="com"># the fix — wrap with a mutex</span>
-<span class="kw">with</span> lock:
-    counter += <span class="num">1</span></div>
+<span class="com">// ---- Without a lock — the bug ----</span>
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; N; i++) {
+  <span class="kw">const</span> v = view[COUNTER];   <span class="com">// read</span>
+  <span class="com">// tiny CPU burn so the OS can switch threads here</span>
+  view[COUNTER] = v + <span class="num">1</span>;     <span class="com">// write — peer's update can be lost</span>
+}
+
+<span class="com">// ---- With a mutex — the fix ----</span>
+<span class="kw">function</span> <span class="fn">mutexLock</span>() {
+  <span class="kw">while</span> (<span class="ty">Atomics</span>.<span class="fn">compareExchange</span>(view, MUTEX, <span class="num">0</span>, <span class="num">1</span>) !== <span class="num">0</span>) {
+    <span class="ty">Atomics</span>.<span class="fn">wait</span>(view, MUTEX, <span class="num">1</span>);  <span class="com">// sleep until free</span>
+  }
+}
+<span class="kw">function</span> <span class="fn">mutexUnlock</span>() {
+  <span class="ty">Atomics</span>.<span class="fn">store</span>(view, MUTEX, <span class="num">0</span>);
+  <span class="ty">Atomics</span>.<span class="fn">notify</span>(view, MUTEX, <span class="num">1</span>);   <span class="com">// wake one waiter</span>
+}
+
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; N; i++) {
+  <span class="fn">mutexLock</span>();
+  view[COUNTER] += <span class="num">1</span>;
+  <span class="fn">mutexUnlock</span>();
+}</div>
+        <div class="code-note">
+          <code>Atomics.wait</code> / <code>notify</code> are the JS equivalent
+          of Linux <code>futex(2)</code> — the same syscall <code>pthread_mutex_t</code>
+          uses inside.
+        </div>
+      </details>
     </article>
 
     <!-- ====== Demo 2 — Mutex vs Spinlock ====== -->
@@ -314,6 +341,37 @@
         <div class="stat info"><div class="label">Mutex</div>   <div class="value" data-field="mutex">— ms</div></div>
         <div class="stat info"><div class="label">Spinlock</div><div class="value" data-field="spinlock">— ms</div></div>
       </div>
+
+      <details class="code-panel">
+        <summary>
+          <span class="label">Show code</span>
+          <span class="code-tag real">real · atomic operations</span>
+        </summary>
+        <div class="code"><span class="com">// MUTEX — sleeps when blocked (Linux: futex)</span>
+<span class="kw">function</span> <span class="fn">mutexLock</span>() {
+  <span class="kw">while</span> (<span class="ty">Atomics</span>.<span class="fn">compareExchange</span>(view, MUTEX, <span class="num">0</span>, <span class="num">1</span>) !== <span class="num">0</span>) {
+    <span class="ty">Atomics</span>.<span class="fn">wait</span>(view, MUTEX, <span class="num">1</span>);    <span class="com">// kernel puts us to sleep</span>
+  }
+}
+
+<span class="com">// SPINLOCK — busy-waits, never sleeps</span>
+<span class="kw">function</span> <span class="fn">spinLock</span>() {
+  <span class="kw">while</span> (<span class="ty">Atomics</span>.<span class="fn">compareExchange</span>(view, SPIN, <span class="num">0</span>, <span class="num">1</span>) !== <span class="num">0</span>) {
+    <span class="com">// keep checking, burning CPU</span>
+  }
+}
+
+<span class="com">// Same job for both: 30 000 increments × 4 threads.</span>
+<span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; iterations; i++) {
+  <span class="fn">lock</span>();
+  view[COUNTER] += <span class="num">1</span>;
+  <span class="fn">unlock</span>();
+}</div>
+        <div class="code-note">
+          <code>compareExchange</code> is one CPU instruction (<code>CMPXCHG</code>
+          on x86). It is atomic in hardware — the same primitive Linux uses.
+        </div>
+      </details>
     </article>
 
     <!-- ====== Demo 3 — Producer / Consumer ====== -->
@@ -361,6 +419,43 @@
         <div class="stat good"><div class="label">Consumed</div>    <div class="value" data-field="consumed">0</div></div>
         <div class="stat warn"><div class="label">In flight</div>   <div class="value" data-field="inflight">0</div></div>
       </div>
+
+      <details class="code-panel">
+        <summary>
+          <span class="label">Show code</span>
+          <span class="code-tag sim">simulated · same algorithm</span>
+        </summary>
+        <div class="code"><span class="com">// A counting semaphore — same algorithm Linux uses.</span>
+<span class="kw">class</span> <span class="ty">Semaphore</span> {
+  <span class="fn">constructor</span>(value) { <span class="kw">this</span>.value = value; <span class="kw">this</span>.waiters = []; }
+  <span class="kw">async</span> <span class="fn">acquire</span>() {
+    <span class="kw">if</span> (<span class="kw">this</span>.value &gt; <span class="num">0</span>) { <span class="kw">this</span>.value -= <span class="num">1</span>; <span class="kw">return</span>; }
+    <span class="kw">await</span> <span class="kw">new</span> <span class="ty">Promise</span>((res) =&gt; <span class="kw">this</span>.waiters.<span class="fn">push</span>(res));
+  }
+  <span class="fn">release</span>() {
+    <span class="kw">if</span> (<span class="kw">this</span>.waiters.length) <span class="kw">this</span>.waiters.<span class="fn">shift</span>()();
+    <span class="kw">else</span> <span class="kw">this</span>.value += <span class="num">1</span>;
+  }
+}
+
+<span class="kw">const</span> empty = <span class="kw">new</span> <span class="ty">Semaphore</span>(BUFFER_SIZE);   <span class="com">// free slots</span>
+<span class="kw">const</span> full  = <span class="kw">new</span> <span class="ty">Semaphore</span>(<span class="num">0</span>);             <span class="com">// ready items</span>
+<span class="kw">const</span> mutex = <span class="kw">new</span> <span class="ty">Mutex</span>();
+
+<span class="kw">async function</span> <span class="fn">producer</span>() {
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; N; i++) {
+    <span class="kw">await</span> empty.<span class="fn">acquire</span>();   <span class="com">// wait if full</span>
+    <span class="kw">await</span> mutex.<span class="fn">acquire</span>();
+    buffer.<span class="fn">push</span>(i);
+    mutex.<span class="fn">release</span>();
+    full.<span class="fn">release</span>();         <span class="com">// signal item ready</span>
+  }
+}</div>
+        <div class="code-note">
+          The algorithm is exactly what <code>sem_wait</code> /
+          <code>sem_post</code> do in Linux. Only the language is different.
+        </div>
+      </details>
     </article>
 
     <!-- ====== Demo 4 — Readers / Writers ====== -->
@@ -402,6 +497,50 @@
         <div class="stat good"><div class="label">Reads</div>  <div class="value" data-field="reads">0</div></div>
         <div class="stat warn"><div class="label">Writes</div> <div class="value" data-field="writes">0</div></div>
       </div>
+
+      <details class="code-panel">
+        <summary>
+          <span class="label">Show code</span>
+          <span class="code-tag sim">simulated · same algorithm</span>
+        </summary>
+        <div class="code"><span class="com">// Writer-priority RWLock — readers cannot starve a waiting writer.</span>
+<span class="kw">class</span> <span class="ty">RWLock</span> {
+  <span class="fn">constructor</span>() {
+    <span class="kw">this</span>.readers = <span class="num">0</span>;
+    <span class="kw">this</span>.writer = <span class="kw">false</span>;
+    <span class="kw">this</span>.waitingWriters = <span class="num">0</span>;
+    <span class="kw">this</span>.waiters = [];
+  }
+
+  <span class="kw">async</span> <span class="fn">acquireRead</span>() {
+    <span class="com">// wait if anyone is writing OR a writer is waiting</span>
+    <span class="kw">while</span> (<span class="kw">this</span>.writer || <span class="kw">this</span>.waitingWriters &gt; <span class="num">0</span>) {
+      <span class="kw">await</span> <span class="kw">this</span>.<span class="fn">_wait</span>();
+    }
+    <span class="kw">this</span>.readers += <span class="num">1</span>;
+  }
+  <span class="fn">releaseRead</span>() {
+    <span class="kw">this</span>.readers -= <span class="num">1</span>;
+    <span class="kw">if</span> (<span class="kw">this</span>.readers === <span class="num">0</span>) <span class="kw">this</span>.<span class="fn">_wake</span>();
+  }
+
+  <span class="kw">async</span> <span class="fn">acquireWrite</span>() {
+    <span class="kw">this</span>.waitingWriters += <span class="num">1</span>;
+    <span class="kw">while</span> (<span class="kw">this</span>.writer || <span class="kw">this</span>.readers &gt; <span class="num">0</span>) {
+      <span class="kw">await</span> <span class="kw">this</span>.<span class="fn">_wait</span>();
+    }
+    <span class="kw">this</span>.waitingWriters -= <span class="num">1</span>;
+    <span class="kw">this</span>.writer = <span class="kw">true</span>;
+  }
+  <span class="fn">releaseWrite</span>() {
+    <span class="kw">this</span>.writer = <span class="kw">false</span>;
+    <span class="kw">this</span>.<span class="fn">_wake</span>();
+  }
+}</div>
+        <div class="code-note">
+          Linux exposes the same idea as <code>pthread_rwlock_t</code>.
+        </div>
+      </details>
     </article>
 
     <!-- ====== Demo 5 — Deadlock ====== -->
@@ -449,6 +588,40 @@
         <div class="stat info"><div class="label">Result</div>      <div class="value" data-field="result">—</div></div>
         <div class="stat info"><div class="label">Elapsed</div>     <div class="value" data-field="elapsed">— ms</div></div>
       </div>
+
+      <details class="code-panel">
+        <summary>
+          <span class="label">Show code</span>
+          <span class="code-tag sim">simulated · same algorithm</span>
+        </summary>
+        <div class="code"><span class="com">// Two threads, two locks, opposite order — classic deadlock.</span>
+
+<span class="com">// ---- BROKEN ----</span>
+<span class="kw">async function</span> <span class="fn">threadA</span>() {
+  <span class="kw">await</span> lock1.<span class="fn">acquire</span>();           <span class="com">// A grabs lock 1</span>
+  <span class="kw">await</span> <span class="fn">sleep</span>(<span class="num">50</span>);
+  <span class="kw">await</span> lock2.<span class="fn">acquire</span>();           <span class="com">// then wants lock 2 — hangs</span>
+  lock2.<span class="fn">release</span>(); lock1.<span class="fn">release</span>();
+}
+<span class="kw">async function</span> <span class="fn">threadB_broken</span>() {
+  <span class="kw">await</span> lock2.<span class="fn">acquire</span>();           <span class="com">// B grabs lock 2</span>
+  <span class="kw">await</span> <span class="fn">sleep</span>(<span class="num">50</span>);
+  <span class="kw">await</span> lock1.<span class="fn">acquire</span>();           <span class="com">// then wants lock 1 — hangs</span>
+  lock1.<span class="fn">release</span>(); lock2.<span class="fn">release</span>();
+}
+
+<span class="com">// ---- FIXED — same global order ----</span>
+<span class="kw">async function</span> <span class="fn">threadB_fixed</span>() {
+  <span class="kw">await</span> lock1.<span class="fn">acquire</span>();           <span class="com">// always lock 1 first!</span>
+  <span class="kw">await</span> <span class="fn">sleep</span>(<span class="num">50</span>);
+  <span class="kw">await</span> lock2.<span class="fn">acquire</span>();
+  lock2.<span class="fn">release</span>(); lock1.<span class="fn">release</span>();
+}</div>
+        <div class="code-note">
+          Real Linux kernels add lockdep — a runtime check that warns if any
+          two locks are ever taken in conflicting orders.
+        </div>
+      </details>
     </article>
 
     <!-- ====== Demo 6 — Priority Inversion ====== -->
@@ -512,6 +685,44 @@
         <div class="stat bad"> <div class="label">Latency · no PI</div>  <div class="value" data-field="lat_without">— ms</div></div>
         <div class="stat good"><div class="label">Latency · with PI</div><div class="value" data-field="lat_with">— ms</div></div>
       </div>
+
+      <details class="code-panel">
+        <summary>
+          <span class="label">Show code</span>
+          <span class="code-tag sim">simulated · cooperative scheduler</span>
+        </summary>
+        <div class="code"><span class="com">// Cooperative scheduler so the inversion is visible.</span>
+<span class="com">// `usePI` flag turns priority inheritance on or off.</span>
+
+<span class="kw">function</span> <span class="fn">shouldRun</span>(name) {
+  <span class="com">// PI: the lock holder gets the CPU when High is waiting.</span>
+  <span class="kw">if</span> (usePI &amp;&amp; sched.highWaiting &amp;&amp; sched.mutexHolder === name)
+    <span class="kw">return</span> <span class="kw">true</span>;
+  <span class="com">// Plain: the highest-priority runnable thread wins.</span>
+  <span class="kw">return</span> sched.holder === name;
+}
+
+<span class="kw">async function</span> <span class="fn">low</span>() {
+  sched.mutexHolder = <span class="str">'Low'</span>;
+  <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; <span class="num">12</span>; i++) {
+    <span class="kw">while</span> (!<span class="fn">shouldRun</span>(<span class="str">'Low'</span>)) <span class="kw">await</span> <span class="fn">sleep</span>(<span class="num">5</span>);
+    <span class="kw">await</span> <span class="fn">sleep</span>(<span class="num">40</span>);   <span class="com">// critical section work</span>
+  }
+  sched.mutexHolder = <span class="kw">null</span>;
+}
+
+<span class="kw">async function</span> <span class="fn">high</span>() {
+  <span class="kw">await</span> <span class="fn">sleep</span>(<span class="num">120</span>);
+  sched.highWaiting = <span class="kw">true</span>;
+  <span class="kw">if</span> (usePI) <span class="fn">claimCPU</span>(<span class="str">'Low'</span>);   <span class="com">// boost Low</span>
+  <span class="kw">while</span> (sched.mutexHolder !== <span class="kw">null</span>) <span class="kw">await</span> <span class="fn">sleep</span>(<span class="num">10</span>);
+  sched.mutexHolder = <span class="str">'High'</span>;
+}</div>
+        <div class="code-note">
+          Real Linux uses <code>PTHREAD_PRIO_INHERIT</code>, set on the mutex
+          attribute. The scheduler does the boosting — same idea.
+        </div>
+      </details>
     </article>
 
   </main>
