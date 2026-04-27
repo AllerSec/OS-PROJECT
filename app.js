@@ -27,17 +27,53 @@ function updateStatus() {
   const isolated = self.crossOriginIsolated;
   const sab = typeof SharedArrayBuffer !== 'undefined';
   if (isolated && sab) {
-    el.textContent = `online · 6 demos · isolated`;
+    el.textContent = `ready · 6 demos`;
   } else if (sab) {
-    el.textContent = `partial · no isolation`;
+    el.textContent = `loading…`;
   } else {
-    el.textContent = `limited · no SAB`;
+    el.textContent = `loading…`;
   }
 }
 window.addEventListener('load', updateStatus);
 window.addEventListener('keydown', (e) => {
   if (e.key === 'r' || e.key === 'R') updateStatus();
 });
+
+// ---------- First-visit auto-reload (so SharedArrayBuffer works) ----------
+// The COI service worker needs one page load to install before isolation
+// kicks in. If we landed here without it, reload once automatically.
+(function autoReloadIfNeeded() {
+  if (self.crossOriginIsolated) return;
+  if (sessionStorage.getItem('obsidian-coi-reloaded')) return;
+  if (!navigator.serviceWorker) return;
+
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    z-index: 100; padding: 10px 18px;
+    background: rgba(91,224,255,0.12);
+    border: 1px solid rgba(91,224,255,0.4);
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: #5BE0FF;
+    backdrop-filter: blur(12px);
+  `;
+  banner.textContent = 'Setting up… one moment.';
+  document.body.appendChild(banner);
+
+  const start = Date.now();
+  const check = () => {
+    if (navigator.serviceWorker.controller) {
+      sessionStorage.setItem('obsidian-coi-reloaded', '1');
+      location.reload();
+    } else if (Date.now() - start < 8000) {
+      setTimeout(check, 250);
+    } else {
+      banner.textContent = 'Demo 1 may run in basic mode.';
+    }
+  };
+  check();
+})();
 
 // ---------- Demo runner ----------
 async function runDemo(name, params, onEvent) {

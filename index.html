@@ -49,13 +49,12 @@
   <!-- ============================================================ -->
   <section class="section" id="cover">
     <div class="hero">
-      <h1>Synchronization tools for Linux RTOS, demonstrated live.</h1>
+      <h1>How Linux keeps tasks safe when they share things.</h1>
       <p>
-        An interactive coursework project for <strong>Real-Time Operating Systems</strong>.
-        Six runnable demos that show how Linux solves the classic problems of
-        shared resources in real-time systems. Click <strong>Run</strong> on any
-        card and watch the threads race, block, deadlock and recover. Every
-        explanation is in plain English.
+        A class project for <strong>Real-Time Operating Systems</strong>. Six
+        small demos that you can run with one click. Each demo shows a real
+        problem that happens when many tasks use the same data — and the tool
+        Linux uses to fix it. Every text is in simple English.
       </p>
       <div class="tags">
         <span class="tag">         <span class="swatch"></span> mutex          </span>
@@ -81,44 +80,41 @@
   <!-- 2 · MOTIVATION                                                -->
   <!-- ============================================================ -->
   <section class="section" id="motivation">
-    <span class="section-kicker">01 · Motivation</span>
-    <h2 class="section-title">Why synchronization in RTOS?</h2>
+    <span class="section-kicker">01 · Why</span>
+    <h2 class="section-title">Why do we need this?</h2>
     <p class="section-lead">
-      In a real-time system, several tasks share buffers, devices, counters
-      and queues. When two of them touch the same data without coordination,
-      the result is silently wrong, the system deadlocks, or a high-priority
-      task misses its deadline. Linux gives us the tools to prevent this —
-      but each one comes with trade-offs.
+      In a real-time system, many small tasks run at the same time. They
+      often need to use the same data. If two tasks change the same thing
+      at the same time, the result can be wrong — and you may not even
+      notice. Linux gives us special tools to stop this from happening.
     </p>
 
     <div class="split two">
       <div class="point coral">
         <h3><span class="dot"></span> The problem</h3>
         <p>
-          Concurrent threads can interleave at any byte boundary. A simple
-          <code>counter += 1</code> is not atomic — it is read, modify, write,
-          and another thread can sneak in between the read and the write.
-          The bug does not crash; it just produces wrong numbers, and only
-          sometimes.
+          Adding 1 to a number looks simple, but the computer does it in
+          three steps: <em>read the number</em>, <em>add 1</em>, <em>save the
+          number</em>. If another task runs between step 1 and step 3, your
+          change can be lost. The program does not crash. It just gives wrong
+          numbers, sometimes.
         </p>
       </div>
       <div class="point">
-        <h3><span class="dot"></span> The toolkit</h3>
+        <h3><span class="dot"></span> The tools</h3>
         <p>
-          Linux exposes <strong>mutexes</strong>, <strong>spinlocks</strong>,
-          <strong>semaphores</strong>, <strong>read-write locks</strong>,
-          <strong>condition variables</strong> and <strong>priority-inheritance
-          mutexes</strong>. Picking the right one for the right context is the
-          difference between a system that meets its deadlines and one that
-          silently loses data.
+          Linux gives us many tools to keep tasks safe: <strong>mutex</strong>,
+          <strong>spinlock</strong>, <strong>semaphore</strong>,
+          <strong>read-write lock</strong>, and more. They all help, but each
+          one is good for a different job. Picking the right one matters.
         </p>
       </div>
     </div>
 
     <div class="callout">
-      Goal of this project: build an interactive web app that lets you
-      <em>see</em> each of these tools in action — including the bugs they
-      prevent — so the difference between them is no longer abstract.
+      The goal of this project: an app that lets you <em>see</em> these tools
+      working — and see the bugs they fix — so they stop being just words in
+      a book.
     </div>
   </section>
 
@@ -126,23 +122,23 @@
   <!-- 3 · KEY CONCEPTS                                              -->
   <!-- ============================================================ -->
   <section class="section" id="concepts">
-    <span class="section-kicker">02 · Concepts</span>
-    <h2 class="section-title">Six concepts, one page</h2>
+    <span class="section-kicker">02 · Words you need</span>
+    <h2 class="section-title">A small dictionary</h2>
     <p class="section-lead">
-      Each demo below isolates one concept and lets you trigger it on
-      demand. The numbers you see are real measurements, not fake values.
+      Before the demos, here is a short list of the words we will use. They
+      sound hard, but the idea behind each one is simple.
     </p>
 
     <ol class="keylist">
-      <li><b>Race condition</b><span>Two threads on one variable. Without a mutex, updates are lost.</span></li>
-      <li><b>Mutex</b><span>One thread at a time. Blocked threads sleep until the lock is free.</span></li>
-      <li><b>Spinlock</b><span>One thread at a time, but blocked threads burn CPU until the lock is free.</span></li>
-      <li><b>Semaphore</b><span>Counts a resource (free slots, ready items). Blocks at zero.</span></li>
-      <li><b>Read-Write lock</b><span>Many readers in parallel; one exclusive writer. Writer-priority avoids starvation.</span></li>
-      <li><b>Deadlock</b><span>Circular wait between threads. Fixed with a global lock-order rule.</span></li>
-      <li><b>Priority inversion</b><span>A high-priority task indirectly blocked by a medium one — the boss problem.</span></li>
-      <li><b>Priority inheritance</b><span>The lock holder temporarily inherits the priority of the highest waiter.</span></li>
-      <li><b>Atomics &amp; futex</b><span>Lock-free primitives that mutexes are built on top of.</span></li>
+      <li><b>Task / thread</b><span>A small unit of work the computer runs. Many can run at once.</span></li>
+      <li><b>Race condition</b><span>A bug that happens when two tasks change the same thing at the same time and one change is lost.</span></li>
+      <li><b>Mutex</b><span>A "key" that only one task can hold. Other tasks wait their turn (they sleep).</span></li>
+      <li><b>Spinlock</b><span>The same idea as a mutex, but waiting tasks keep checking in a loop instead of sleeping. Faster, but uses CPU.</span></li>
+      <li><b>Semaphore</b><span>A counter for a shared thing. If the count is zero, the next task has to wait.</span></li>
+      <li><b>Read-Write lock</b><span>Many tasks can read at the same time. Only one task can write, alone.</span></li>
+      <li><b>Deadlock</b><span>Two tasks both wait for each other. Nothing moves. Like two people in a doorway, each saying "you go first".</span></li>
+      <li><b>Priority inversion</b><span>An important task gets stuck because of a less important one. A bug.</span></li>
+      <li><b>Priority inheritance</b><span>The fix: the task that holds the key gets a "boost" so it can finish quickly.</span></li>
     </ol>
   </section>
 
@@ -150,58 +146,55 @@
   <!-- 4 · ARCHITECTURE                                              -->
   <!-- ============================================================ -->
   <section class="section" id="architecture">
-    <span class="section-kicker">03 · Architecture</span>
-    <h2 class="section-title">How the web app works</h2>
+    <span class="section-kicker">03 · How it is built</span>
+    <h2 class="section-title">How does this app work?</h2>
     <p class="section-lead">
-      The site is fully static — it runs entirely in your browser, with no
-      backend. Demos 1 and 2 use real <strong>Web Workers</strong> sharing a
-      <code>SharedArrayBuffer</code>; the synchronization primitives are
-      <code>Atomics.wait</code> / <code>Atomics.notify</code>, the JS
-      equivalent of Linux <code>futex(2)</code>. Demos 3 to 6 run cooperatively
-      in the main thread because their behaviour is best understood through
-      animation, not through CPU contention.
+      Everything runs <strong>inside your browser</strong>. There is no
+      server. Demos 1 and 2 use <em>Web Workers</em> — small helpers in the
+      browser that act like real tasks running at the same time. They share
+      a piece of memory and use the same kind of "lock" that Linux uses
+      inside.
     </p>
 
     <div class="arch">
       <div class="arch-box">
-        <div class="label">Browser · UI</div>
-        <h4>Vanilla JS + Chart.js</h4>
+        <div class="label">What you see</div>
+        <h4>The page</h4>
         <ul>
-          <li>Liquid-glass dark CSS</li>
-          <li>One ES module per demo</li>
-          <li>Responsive web + mobile</li>
+          <li>Dark glass design</li>
+          <li>One file for each demo</li>
+          <li>Works on phone and desktop</li>
         </ul>
       </div>
       <div class="arch-arrow">
-        Web Worker · MessageChannel
+        Web Worker
         <span class="line"></span>
-        SharedArrayBuffer
+        Shared memory
       </div>
       <div class="arch-box">
-        <div class="label">Workers · Sync</div>
-        <h4>Atomics &amp; futex</h4>
+        <div class="label">What runs</div>
+        <h4>Real tasks &amp; locks</h4>
         <ul>
-          <li><code>compareExchange</code> for spinlocks</li>
-          <li><code>wait / notify</code> for mutexes</li>
-          <li>Real concurrent execution</li>
+          <li>Two helpers compete for one number</li>
+          <li>Locks make them take turns</li>
+          <li>Same idea as Linux uses</li>
         </ul>
       </div>
     </div>
 
     <div class="split three" style="margin-top:18px">
       <div class="point cyan">
-        <h3><span class="dot"></span> 100 % static</h3>
-        <p>No backend. Deploys to GitHub Pages with one push.</p>
+        <h3><span class="dot"></span> No server</h3>
+        <p>Just a web page. We push the code and GitHub puts it online.</p>
       </div>
       <div class="point violet">
-        <h3><span class="dot"></span> COOP / COEP</h3>
-        <p>Required headers for <code>SharedArrayBuffer</code> are added by a
-        client-side service worker — works on any host.</p>
+        <h3><span class="dot"></span> Works anywhere</h3>
+        <p>A small helper makes sure shared memory works in any browser.</p>
       </div>
       <div class="point amber">
         <h3><span class="dot"></span> Bonus: Python</h3>
-        <p>A <code>legacy_python/</code> folder ships the same demos as a
-        FastAPI/uvicorn server using real OS threads.</p>
+        <p>The same demos also exist as a Python program in
+        <code>legacy_python/</code>, using real Linux threads.</p>
       </div>
     </div>
   </section>
@@ -210,12 +203,12 @@
   <!-- 5 · LIVE DEMOS                                                -->
   <!-- ============================================================ -->
   <section class="section" id="demos">
-    <span class="section-kicker">04 · Live demos</span>
-    <h2 class="section-title">Click any Run button</h2>
+    <span class="section-kicker">04 · Try it</span>
+    <h2 class="section-title">The demos</h2>
     <p class="section-lead">
-      Each card includes a "What is this?" panel with a plain-English
-      explanation, then real numbers from your own machine. Demos run in
-      sequence, so it is fine to start them one after another.
+      Click <strong>Run</strong> on any card. You will see real numbers from
+      your own computer — not fake ones. Open the box "What is this?" on
+      each card to read what the demo is doing.
     </p>
 
   <!-- ============================================================ -->
@@ -234,25 +227,23 @@
           <button class="btn btn-primary" data-action="start">Run</button>
         </div>
       </div>
-      <p class="demo-subtitle">Two threads, one counter. With and without a mutex.</p>
+      <p class="demo-subtitle">Two helpers, one number. With and without a "key".</p>
 
       <details class="info">
         <summary>What is this?</summary>
         <div class="info-body">
           <p>
-            A <strong>race condition</strong> happens when two threads change the
-            same data at the same time and one update gets lost. It does not
-            crash, but the result is wrong.
+            Two helpers count to a big number. Each helper says
+            "<code>+1</code>" many, many times. The total should be exact.
           </p>
           <p>
-            Each thread runs <code>counter += 1</code> many times. Without a lock,
-            both threads can read the same old value, add one, and write it back
-            — the final number is too small.
+            <strong>Without a lock:</strong> both helpers sometimes read the
+            same number, add 1, and save it. The other helper's "+1" is lost.
+            The total is too small.
           </p>
           <p>
-            A <strong>mutex</strong> (<em>mutual exclusion</em>) makes only one
-            thread at a time enter the section that touches the shared data.
-            With it, the result is exact.
+            <strong>With a mutex (a "key"):</strong> only one helper at a time
+            can change the number. The total is correct.
           </p>
         </div>
       </details>
@@ -289,25 +280,28 @@
           <button class="btn btn-primary" data-action="start">Benchmark</button>
         </div>
       </div>
-      <p class="demo-subtitle">Same workload, two locking strategies.</p>
+      <p class="demo-subtitle">Same job, two ways to wait. Which one is faster?</p>
 
       <details class="info">
         <summary>What is this?</summary>
         <div class="info-body">
           <p>
-            A <strong>mutex</strong> makes blocked threads sleep until the lock is
-            free. A <strong>spinlock</strong> makes them <em>busy-wait</em> in a
-            tight loop, burning CPU until the lock is free.
+            Both <strong>mutex</strong> and <strong>spinlock</strong> are
+            "keys" — only one task at a time can hold them. The difference is
+            <em>how the other tasks wait</em>.
           </p>
           <p>
-            Spinlocks are faster when the critical section is shorter than a
-            context switch (a few microseconds). Mutexes are better when the
-            section is longer, because sleeping releases the CPU.
+            <strong>Mutex:</strong> waiting tasks <em>sleep</em>. They use no
+            CPU. The OS wakes them up when the key is free.
           </p>
           <p>
-            We run the exact same job with each, and graph the time. The Linux
-            kernel uses both, depending on context — you cannot sleep inside an
-            interrupt handler, so spinlocks rule there.
+            <strong>Spinlock:</strong> waiting tasks <em>keep checking in a
+            loop</em>. They use CPU but they react instantly.
+          </p>
+          <p>
+            Spinlocks are good for very short jobs. Mutexes are good for
+            longer ones. Linux uses both. The chart below shows the time each
+            one takes for the same job.
           </p>
         </div>
       </details>
@@ -333,24 +327,28 @@
           <button class="btn btn-primary" data-action="start">Run</button>
         </div>
       </div>
-      <p class="demo-subtitle">Bounded buffer with two semaphores plus a mutex.</p>
+      <p class="demo-subtitle">One task makes things. Another uses them. They share a small box.</p>
 
       <details class="info">
         <summary>What is this?</summary>
         <div class="info-body">
           <p>
-            A classic pipeline. The <strong>producer</strong> makes items, the
-            <strong>consumer</strong> uses them. Between them sits a buffer of
-            fixed size.
+            A common setup. The <strong>producer</strong> creates items
+            (numbers). The <strong>consumer</strong> takes them one by one.
+            Between them is a <strong>box</strong> (buffer) with a fixed size.
           </p>
           <p>
-            Two <strong>semaphores</strong> count free slots and ready items, and
-            a <strong>mutex</strong> protects the buffer itself. The producer
-            cannot overflow; the consumer cannot read empty slots.
+            Two rules:
           </p>
           <p>
-            This is how device drivers, network stacks, and audio pipelines move
-            data between threads in Linux.
+            • If the box is <em>full</em>, the producer waits.<br/>
+            • If the box is <em>empty</em>, the consumer waits.
+          </p>
+          <p>
+            We use two <strong>semaphores</strong> (counters) and a mutex to
+            make this safe. This is how Linux moves data between parts of the
+            system: from a microphone to a speaker, from the network to your
+            program, etc.
           </p>
         </div>
       </details>
@@ -376,20 +374,24 @@
           <button class="btn btn-primary" data-action="start">Run</button>
         </div>
       </div>
-      <p class="demo-subtitle">Many readers may share access; writers go alone.</p>
+      <p class="demo-subtitle">Many can read at once. Only one can write at a time.</p>
 
       <details class="info">
         <summary>What is this?</summary>
         <div class="info-body">
           <p>
-            A <strong>read-write lock</strong> lets many readers work in parallel
-            but gives a writer the resource alone. This is what
-            <code>pthread_rwlock_t</code> does on Linux.
+            Think of a book in a library. Many people can read it at the same
+            time — that is fine. But if someone wants to <em>write</em> a
+            note in it, they need the book alone for a moment.
           </p>
           <p>
-            We use <em>writer priority</em>: a waiting writer blocks new readers
-            so it cannot starve. Each lane below shows what one thread is doing
-            at this instant.
+            That is the <strong>read-write lock</strong>. It lets many readers
+            work together, but a writer gets the data alone. Linux has this
+            built in.
+          </p>
+          <p>
+            In this demo, each line shows one task. <em>R1, R2, R3, R4</em> are
+            readers and <em>W1</em> is a writer. Watch how they take turns.
           </p>
         </div>
       </details>
@@ -414,24 +416,25 @@
           <button class="btn btn-primary" data-action="fix">Fix</button>
         </div>
       </div>
-      <p class="demo-subtitle">Two threads, two locks, opposite order.</p>
+      <p class="demo-subtitle">Two tasks. Two keys. Both stuck waiting for each other.</p>
 
       <details class="info">
         <summary>What is this?</summary>
         <div class="info-body">
           <p>
-            A <strong>deadlock</strong> is a circular wait. Thread A holds lock 1
-            and wants lock 2. Thread B holds lock 2 and wants lock 1. Neither
-            ever continues.
+            Imagine two people, each with one key. Person A has key 1 and
+            wants key 2. Person B has key 2 and wants key 1. Neither one
+            gives up. They wait <em>forever</em>. This is a
+            <strong>deadlock</strong>.
           </p>
           <p>
-            The fix is a <strong>global lock order</strong>: every thread always
-            grabs lock 1 before lock 2. No cycle can form.
+            The fix is simple: agree on an <strong>order</strong>. Everyone
+            takes key 1 first, then key 2. Now no one can get stuck.
           </p>
           <p>
-            A real-time system that deadlocks misses its deadline. Real kernels
-            use lock hierarchies and runtime checks (<code>lockdep</code>) to
-            avoid this.
+            Click <strong>Cause</strong> to see the bug. (After 2.5 seconds we
+            stop the test, so the page does not freeze.) Then click
+            <strong>Fix</strong> to see the working version.
           </p>
         </div>
       </details>
@@ -459,30 +462,35 @@
           <button class="btn btn-primary" data-action="start">Run both</button>
         </div>
       </div>
-      <p class="demo-subtitle">A high-priority task blocked by a medium one.</p>
+      <p class="demo-subtitle">An important task gets stuck because of a less important one.</p>
 
       <details class="info">
         <summary>What is this?</summary>
         <div class="info-body">
           <p>
-            Three threads — <strong>Low</strong>, <strong>Medium</strong>,
-            <strong>High</strong>. Low holds a mutex. High wakes up and waits for
-            it. Medium is CPU-bound and pre-empts Low. Now High waits for Low,
-            which waits for Medium. This is <strong>priority inversion</strong>.
+            Three tasks: <strong>Low</strong> (small job), <strong>Medium</strong>
+            (uses CPU a lot), and <strong>High</strong> (very important).
           </p>
           <p>
-            <strong>Priority inheritance</strong> fixes it: when High blocks on
-            the mutex, Low temporarily inherits High's priority. Medium can no
-            longer pre-empt Low; the mutex is released quickly. Linux supports
-            this with <code>PTHREAD_PRIO_INHERIT</code>.
+            <strong>The bug:</strong> Low takes a key. High wakes up and needs
+            the same key, so High waits. Then Medium starts. Medium is more
+            important than Low, so the OS gives the CPU to Medium. Now Low
+            cannot finish, and High keeps waiting because of Medium! The most
+            important task is stuck. This is <strong>priority inversion</strong>.
+          </p>
+          <p>
+            <strong>The fix (priority inheritance):</strong> when High waits
+            for Low, we give Low a temporary "boost". Now Medium cannot push
+            Low aside. Low finishes fast, gives back the key, and High can
+            run. This bug actually happened on the Mars Pathfinder rover in
+            1997!
           </p>
         </div>
       </details>
 
       <div class="banner">
-        Real OS-level priority inheritance needs Linux. We model the effect with
-        a cooperative scheduler so the visual difference is clear on any
-        platform.
+        The real "boost" feature lives inside Linux. Here we copy the same
+        idea in the browser, so you can see how it changes things.
       </div>
 
       <div class="timeline-wrap">
@@ -513,47 +521,44 @@
   <!-- 6 · CONCLUSIONS                                               -->
   <!-- ============================================================ -->
   <section class="section" id="conclusions">
-    <span class="section-kicker">05 · Conclusions</span>
-    <h2 class="section-title">What we learned</h2>
+    <span class="section-kicker">05 · What we learned</span>
+    <h2 class="section-title">Four lessons</h2>
     <p class="section-lead">
-      Building each demo from scratch made the trade-offs concrete. Here is
-      what stands out.
+      Building each demo by hand made these ideas easy to feel, not just to
+      read. Here are the four big lessons.
     </p>
 
     <div class="conclusion-grid">
       <div class="point">
-        <h3><span class="dot"></span> Mutex vs spinlock is contextual</h3>
+        <h3><span class="dot"></span> 1. There is no "best" lock</h3>
         <p>
-          Spinlocks win for ultra-short critical sections; mutexes win when
-          the section is longer than a context switch. Linux uses both —
-          spinlocks inside interrupt handlers (where sleeping is forbidden),
-          mutexes in user space.
+          Spinlocks are good for very short jobs. Mutexes are good for longer
+          jobs. Linux uses both. You pick the one that fits the job, not
+          "the fastest one".
         </p>
       </div>
       <div class="point cyan">
-        <h3><span class="dot"></span> Deadlocks are structural</h3>
+        <h3><span class="dot"></span> 2. Deadlocks are about rules</h3>
         <p>
-          A deadlock is rarely a "missing lock"; it is a circular dependency
-          between locks. The fix is a global ordering rule applied
-          everywhere, not a clever runtime check at one site.
+          A deadlock is not "I forgot a lock". It is "two tasks took locks in
+          a different order". The fix is a simple rule that everyone follows:
+          always take key 1 before key 2.
         </p>
       </div>
       <div class="point amber">
-        <h3><span class="dot"></span> Priority inheritance is essential</h3>
+        <h3><span class="dot"></span> 3. Important tasks need a "boost"</h3>
         <p>
-          Without it, an unrelated medium-priority task can make a
-          high-priority task miss its deadline. The Mars Pathfinder bug was
-          exactly this. Linux fixes it with
-          <code>PTHREAD_PRIO_INHERIT</code>.
+          Without priority inheritance, a less important task can block a
+          very important one. This bug nearly broke a NASA mission to Mars
+          in 1997. Linux now has a fix built in.
         </p>
       </div>
       <div class="point violet">
-        <h3><span class="dot"></span> The browser is a real OS</h3>
+        <h3><span class="dot"></span> 4. The browser can do real concurrency</h3>
         <p>
-          Web Workers + <code>SharedArrayBuffer</code> + <code>Atomics</code>
-          let us run real concurrent code in a static page. The same
-          algorithm runs identically on Linux pthreads and on the browser —
-          the synchronisation theory is portable.
+          Modern browsers can run many tasks at the same time and share
+          memory. The locks we use here work the same way as the ones inside
+          Linux. The ideas are the same; only the language is different.
         </p>
       </div>
     </div>
@@ -563,12 +568,11 @@
   <!-- 7 · REPOSITORY                                                -->
   <!-- ============================================================ -->
   <section class="section" id="repo">
-    <span class="section-kicker">06 · Repository</span>
-    <h2 class="section-title">Source code &amp; deployment</h2>
+    <span class="section-kicker">06 · Code</span>
+    <h2 class="section-title">Where to find everything</h2>
     <p class="section-lead">
-      The whole project — frontend, the bonus Python backend, this
-      presentation, screenshots and the design spec — is in a single
-      repository. Every push to <code>main</code> redeploys the live site
+      All the code, this page, the screenshots and the bonus Python version
+      live in one place on GitHub. Every change is published online
       automatically.
     </p>
 
@@ -585,7 +589,7 @@
 
   <footer class="footer">
     <div>Obsidian Lab · Real-Time Operating Systems · 2025–2026</div>
-    <div style="margin-top:6px">Press <code>R</code> to refresh status · 100% static · GitHub Pages</div>
+    <div style="margin-top:6px">Built with HTML, CSS and a bit of JavaScript · No server</div>
   </footer>
 </div>
 
